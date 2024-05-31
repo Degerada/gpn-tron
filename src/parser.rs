@@ -6,22 +6,21 @@ pub enum MessageTypes {
         error_text: String,
     },
     Game {
-        map_width: u8,
-        map_height: u8,
-        player_id: u8,
+        map_width: usize,
+        map_height: usize,
+        player_id: usize,
     },
     Pos {
-        player_id: u8,
-        pos_x: u8,
-        pos_y: u8,
+        player_id: usize,
+        pos_x: usize,
+        pos_y: usize,
     },
     Player {
-        player_id: u8,
-        player_name: String,
+        player_id: usize,
     },
     Tick,
     Die {
-        player_id: u8,
+        player_id: usize,
     },
 }
 
@@ -68,7 +67,6 @@ pub fn parse_read_from_buffer(buffer: String) -> Vec<MessageTypes> {
             }),
             "player" => parsed_messages.push(MessageTypes::Player {
                 player_id: message_components[1].parse().unwrap(),
-                player_name: message_components[2].parse().unwrap(),
             }),
             "tick" => parsed_messages.push(MessageTypes::Tick),
             "die" => parsed_messages.push(MessageTypes::Die {

@@ -5,6 +5,7 @@ use std::time::Duration;
 use gamestate::GameState;
 use parser::MessageTypes;
 
+use crate::algorithm::Algorithm;
 use crate::parser::Command;
 
 mod algorithm;
@@ -26,11 +27,9 @@ fn main() {
     let mut connection = TcpStream::connect(url).unwrap();
     let mut buf_reader = BufReader::new(connection.try_clone().unwrap());
 
-    let mut buffer = String::from("");
-
     loop {
         // Read latest data
-        buffer = String::new();
+        let mut buffer = String::new();
         buf_reader.read_line(&mut buffer).unwrap();
 
         // Parse messages from server
@@ -49,22 +48,21 @@ fn main() {
                     println!("Sending join message {}", join_message);
                     connection.write_all(join_message.as_bytes()).unwrap();
                 }
-                MessageTypes::Error {
-                    error_text: _errorText,
-                } => {}
+                MessageTypes::Error { .. } => {}
                 MessageTypes::Game {
                     map_width,
                     map_height,
                     player_id,
                 } => gamestate = GameState::new(map_width, map_height, player_id),
-                MessageTypes::Pos { .. } => gamestate.process(&message),
-                MessageTypes::Player { .. } => gamestate.process(&message),
+                MessageTypes::Pos { .. }
+                | MessageTypes::Player { .. }
+                | MessageTypes::Die { .. } => gamestate.process(&message),
                 MessageTypes::Tick => {
-                    let direction = algorithm::calculate_next_move(&gamestate);
+                    let algorithm = Algorithm::new(&gamestate);
+                    let direction = algorithm.calculate_next_move();
                     let move_message = Command::Move { direction }.as_str();
                     connection.write(move_message.as_bytes()).unwrap();
                 }
-                MessageTypes::Die { .. } => gamestate.process(&message),
             }
         }
 

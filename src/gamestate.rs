@@ -3,20 +3,20 @@ use std::collections::HashMap;
 use crate::parser::MessageTypes;
 
 pub struct GameState {
-    pub(crate) grid: Vec<Vec<u8>>,
-    pub(crate) my_id: u8,
-    pub(crate) players: HashMap<u8, PlayerState>,
+    pub(crate) grid: Vec<Vec<usize>>,
+    pub(crate) my_id: usize,
+    pub(crate) players: HashMap<usize, PlayerState>,
 }
 
 pub struct Point {
-    x: u8,
-    y: u8,
+    pub x: usize,
+    pub y: usize,
 }
 
 pub struct PlayerState {
-    id: u8,
-    alive: bool,
-    position: Point,
+    pub id: usize,
+    pub alive: bool,
+    pub position: Point,
 }
 
 pub enum Direction {
@@ -27,9 +27,9 @@ pub enum Direction {
 }
 
 impl GameState {
-    pub(crate) fn new(map_width: u8, map_height: u8, my_id: u8) -> Self {
+    pub(crate) fn new(map_width: usize, map_height: usize, my_id: usize) -> Self {
         Self {
-            grid: vec![vec![0; map_width as usize]; map_height as usize],
+            grid: vec![vec![0; map_width]; map_height],
             my_id,
             players: HashMap::new(),
         }
@@ -61,12 +61,29 @@ impl GameState {
                     }
                 }
 
-                // FIXME: Implement this shit
-                // self.grid.get_mut(pos_y).unwrap()
+                self.grid[*pos_y as usize][*pos_x as usize] = *player_id;
             }
-            MessageTypes::Player { .. } => {}
+            MessageTypes::Player { player_id } => {
+                if !self.players.contains_key(player_id) {
+                    self.players.insert(
+                        *player_id,
+                        PlayerState {
+                            id: *player_id,
+                            alive: true,
+                            position: Point { x: 0, y: 0 },
+                        },
+                    );
+                }
+            }
             MessageTypes::Die { player_id } => {
                 self.players.get_mut(&player_id).unwrap().alive = false;
+                for row in self.grid.iter_mut() {
+                    for tile in row.iter_mut() {
+                        if *tile == *player_id {
+                            *tile = 0;
+                        }
+                    }
+                }
             }
             MessageTypes::Tick => {}
             _ => {}
