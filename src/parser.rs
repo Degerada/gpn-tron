@@ -2,10 +2,6 @@ use crate::gamestate::Direction;
 
 pub enum MessageTypes {
     Motd,
-    Join {
-        username: String,
-        password: String,
-    },
     Error {
         error_text: String,
     },
@@ -27,9 +23,27 @@ pub enum MessageTypes {
     Die {
         player_id: u8,
     },
-    Move {
-        direction: Direction,
-    },
+}
+
+pub enum Command {
+    Move { direction: Direction },
+    Join { username: String, password: String },
+}
+
+impl Command {
+    pub fn as_str(self: &Self) -> String {
+        return match self {
+            Command::Move { direction } => match direction {
+                Direction::Up => "move|up\n".to_owned(),
+                Direction::Down => "move|down\n".to_owned(),
+                Direction::Left => "move|left\n".to_owned(),
+                Direction::Right => "move|right\n".to_owned(),
+            },
+            Command::Join { username, password } => {
+                format!("join|{}|{}\n", username, password)
+            }
+        };
+    }
 }
 
 pub fn parse_read_from_buffer(buffer: String) -> Vec<MessageTypes> {

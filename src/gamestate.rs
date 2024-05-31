@@ -6,7 +6,6 @@ pub struct GameState {
     pub(crate) grid: Vec<Vec<u8>>,
     pub(crate) my_id: u8,
     pub(crate) players: HashMap<u8, PlayerState>,
-    pub(crate) next_move: Direction,
 }
 
 pub struct Point {
@@ -33,7 +32,6 @@ impl GameState {
             grid: vec![vec![0; map_width as usize]; map_height as usize],
             my_id,
             players: HashMap::new(),
-            next_move: Direction::Up,
         }
     }
 
@@ -66,10 +64,7 @@ impl GameState {
                 // FIXME: Implement this shit
                 // self.grid.get_mut(pos_y).unwrap()
             }
-            MessageTypes::Player {
-                player_id,
-                player_name,
-            } => {}
+            MessageTypes::Player { .. } => {}
             MessageTypes::Die { player_id } => {
                 self.players.get_mut(&player_id).unwrap().alive = false;
             }

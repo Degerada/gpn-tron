@@ -1,10 +1,13 @@
-use std::io::{BufRead, BufReader, Read, Write};
+use std::io::{BufRead, BufReader, Write};
 use std::net::TcpStream;
 use std::time::Duration;
 
-use gamestate::{Direction, GameState};
+use gamestate::GameState;
 use parser::MessageTypes;
 
+use crate::parser::Command;
+
+mod algorithm;
 mod gamestate;
 mod parser;
 
@@ -13,10 +16,10 @@ fn main() {
         grid: vec![],
         my_id: 0,
         players: Default::default(),
-        next_move: Direction::Up,
     };
-    let playername = env!("username");
-    let password = env!("password");
+
+    let username: String = env!("username").to_owned();
+    let password: String = env!("password").to_owned();
     let url = "gpn-tron.duckdns.org:4000";
 
     // Connect
@@ -34,58 +37,38 @@ fn main() {
         let read_messages = parser::parse_read_from_buffer(buffer.clone());
 
         // Act upon message
-        read_messages.iter().for_each(|message| match message {
-            MessageTypes::Motd => {
-                // Send Join
-                let mut join_message = generate_join_message(playername, password);
-                println!("Sending join message {}", join_message);
-                connection.write_all(join_message.as_bytes()).unwrap();
+        for message in read_messages {
+            match message {
+                MessageTypes::Motd => {
+                    // Send Join
+                    let join_message = Command::Join {
+                        username: username.clone(),
+                        password: password.clone(),
+                    }
+                    .as_str();
+                    println!("Sending join message {}", join_message);
+                    connection.write_all(join_message.as_bytes()).unwrap();
+                }
+                MessageTypes::Error {
+                    error_text: _errorText,
+                } => {}
+                MessageTypes::Game {
+                    map_width,
+                    map_height,
+                    player_id,
+                } => gamestate = GameState::new(map_width, map_height, player_id),
+                MessageTypes::Pos { .. } => gamestate.process(&message),
+                MessageTypes::Player { .. } => gamestate.process(&message),
+                MessageTypes::Tick => {
+                    let direction = algorithm::calculate_next_move(&gamestate);
+                    let move_message = Command::Move { direction }.as_str();
+                    connection.write(move_message.as_bytes()).unwrap();
+                }
+                MessageTypes::Die { .. } => gamestate.process(&message),
             }
-            MessageTypes::Join {
-                username: _username,
-                password: _password,
-            } => {}
-            MessageTypes::Error {
-                error_text: _errorText,
-            } => {}
-            MessageTypes::Game {
-                map_width,
-                map_height,
-                player_id,
-            } => gamestate = GameState::new(*map_width, *map_height, *player_id),
-            MessageTypes::Pos {
-                player_id,
-                pos_x,
-                pos_y,
-            } => gamestate.process(message),
-            MessageTypes::Player {
-                player_id,
-                player_name,
-            } => gamestate.process(message),
-            MessageTypes::Tick => {
-                gamestate.process(&message);
-                let move_message = generate_move_message(&gamestate);
-                connection.write(move_message.as_bytes()).unwrap();
-            }
-            MessageTypes::Die { player_id } => gamestate.process(&message),
-            MessageTypes::Move { direction } => {}
-            _ => {}
-        });
+        }
 
         connection.flush().unwrap();
         std::thread::sleep(Duration::from_millis(30));
     }
-}
-
-fn generate_join_message(username: &str, password: &str) -> String {
-    return format!("join|{}|{}\n", username, password);
-}
-
-fn generate_move_message(game_state: &GameState) -> &'static str {
-    return match game_state.next_move {
-        Direction::Up => "move|up\n",
-        Direction::Down => "move|down\n",
-        Direction::Left => "move|left\n",
-        Direction::Right => "move|right\n",
-    };
 }
