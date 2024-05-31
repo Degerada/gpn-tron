@@ -17,6 +17,7 @@ fn main() {
         grid: vec![],
         my_id: 0,
         players: Default::default(),
+        gridsize: 0,
     };
 
     let username: String = env!("username").to_owned();
@@ -53,7 +54,7 @@ fn main() {
                     map_width,
                     map_height,
                     player_id,
-                } => gamestate = GameState::new(map_width, map_height, player_id),
+                } => gamestate = GameState::new(map_width, map_height, player_id, map_width),
                 MessageTypes::Pos { .. }
                 | MessageTypes::Player { .. }
                 | MessageTypes::Die { .. } => gamestate.process(&message),

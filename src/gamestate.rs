@@ -6,6 +6,7 @@ pub struct GameState {
     pub(crate) grid: Vec<Vec<usize>>,
     pub(crate) my_id: usize,
     pub(crate) players: HashMap<usize, PlayerState>,
+    pub(crate) gridsize: usize,
 }
 
 pub struct Point {
@@ -27,11 +28,12 @@ pub enum Direction {
 }
 
 impl GameState {
-    pub(crate) fn new(map_width: usize, map_height: usize, my_id: usize) -> Self {
+    pub(crate) fn new(map_width: usize, map_height: usize, my_id: usize, gridsize: usize) -> Self {
         Self {
             grid: vec![vec![0; map_width]; map_height],
             my_id,
             players: HashMap::new(),
+            gridsize,
         }
     }
 
